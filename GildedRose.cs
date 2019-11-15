@@ -1,88 +1,67 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using ApprovalUtilities.Utilities;
 
 namespace csharpcore
 {
     public class GildedRose
     {
+        const string AgedBrie = "Aged Brie";
+        const string BackstagePasses = "Backstage passes";
+        const string Conjured = "Conjured";
+        const string Sulfuras = "Sulfuras";
+        const int MaxQuality = 50;
+        readonly string[] _specialItems = { AgedBrie, BackstagePasses, Conjured, Sulfuras };
+        Dictionary<Func<Item, bool>, Action<Item>> _itemRules;
+
         IList<Item> Items;
-        public GildedRose(IList<Item> Items)
+
+        public GildedRose(IList<Item> items)
         {
-            this.Items = Items;
+            Items = items;
+
+            InitializeItemRules();
+        }
+
+        private void InitializeItemRules()
+        {
+            // Define item update rules
+            _itemRules = new Dictionary<Func<Item, bool>, Action<Item>>();
+
+            // Aged brie rule
+            _itemRules.Add(item => item.Name.Contains(AgedBrie),
+                item => item.Quality = Math.Min(MaxQuality, item.Quality + 1));
+
+            // Backstage passes rule
+            _itemRules.Add(item => item.Name.Contains(BackstagePasses),
+                item =>
+                {
+                    var qualityChange = item.SellIn > 10 ? 1
+                        : item.SellIn > 5 ? 2
+                        : item.SellIn > 0 ? 3
+                        : -item.Quality;
+                    item.Quality = Math.Min(MaxQuality, item.Quality + qualityChange);
+                });
+
+            // Conjured items rule
+            _itemRules.Add(item => item.Name.Contains(Conjured),
+                item => item.Quality = Math.Max(0, item.Quality - (item.SellIn > 0 ? 2 : 4)));
+
+            // Non-special items rule
+            _itemRules.Add(item => !_specialItems.Any(si => item.Name.Contains(si)),
+                item => item.Quality = Math.Max(0, item.Quality - (item.SellIn > 0 ? 1 : 2)));
+
+            // Update sell in rule
+            _itemRules.Add(item => !item.Name.Contains(Sulfuras), item => item.SellIn--);
         }
 
         public void UpdateQuality()
         {
-            for (var i = 0; i < Items.Count; i++)
+            foreach (var item in Items)
             {
-                if (Items[i].Name != "Aged Brie" && Items[i].Name != "Backstage passes to a TAFKAL80ETC concert")
-                {
-                    if (Items[i].Quality > 0)
-                    {
-                        if (Items[i].Name != "Sulfuras, Hand of Ragnaros")
-                        {
-                            Items[i].Quality = Items[i].Quality - 1;
-                        }
-                    }
-                }
-                else
-                {
-                    if (Items[i].Quality < 50)
-                    {
-                        Items[i].Quality = Items[i].Quality + 1;
-
-                        if (Items[i].Name == "Backstage passes to a TAFKAL80ETC concert")
-                        {
-                            if (Items[i].SellIn < 11)
-                            {
-                                if (Items[i].Quality < 50)
-                                {
-                                    Items[i].Quality = Items[i].Quality + 1;
-                                }
-                            }
-
-                            if (Items[i].SellIn < 6)
-                            {
-                                if (Items[i].Quality < 50)
-                                {
-                                    Items[i].Quality = Items[i].Quality + 1;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (Items[i].Name != "Sulfuras, Hand of Ragnaros")
-                {
-                    Items[i].SellIn = Items[i].SellIn - 1;
-                }
-
-                if (Items[i].SellIn < 0)
-                {
-                    if (Items[i].Name != "Aged Brie")
-                    {
-                        if (Items[i].Name != "Backstage passes to a TAFKAL80ETC concert")
-                        {
-                            if (Items[i].Quality > 0)
-                            {
-                                if (Items[i].Name != "Sulfuras, Hand of Ragnaros")
-                                {
-                                    Items[i].Quality = Items[i].Quality - 1;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            Items[i].Quality = Items[i].Quality - Items[i].Quality;
-                        }
-                    }
-                    else
-                    {
-                        if (Items[i].Quality < 50)
-                        {
-                            Items[i].Quality = Items[i].Quality + 1;
-                        }
-                    }
-                }
+                // Apply rules
+                _itemRules.Where(rule => rule.Key(item)).ForEach(rule => rule.Value(item));
             }
         }
     }

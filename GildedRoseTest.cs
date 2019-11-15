@@ -7,7 +7,7 @@ namespace csharpcore
     public class GildedRoseTest
     {
         [Fact]
-        public void UpdateQuality_RegularItem_ShouldUpdateBothValues()
+        public void UpdateQuality_RegularItem_ShouldUpdateSellIn()
         {
             // Arrange
             var item = new Item {Name = "Pizza", SellIn = 5, Quality = 40};
@@ -19,6 +19,20 @@ namespace csharpcore
 
             // Assert
             Assert.Equal(4, item.SellIn);
+        }
+
+        [Fact]
+        public void UpdateQuality_RegularItem_ShouldUpdateQuality()
+        {
+            // Arrange
+            var item = new Item {Name = "Pizza", SellIn = 5, Quality = 40};
+            var items = new List<Item> {item};
+            var app = new GildedRose(items);
+
+            // Act
+            app.UpdateQuality();
+
+            // Assert
             Assert.Equal(39, item.Quality);
         }
 
@@ -151,11 +165,13 @@ namespace csharpcore
             Assert.Equal(0, item.Quality);
         }
 
-        [Fact]
-        public void UpdateQuality_ConjuredItem_ShouldDecreaseQualityTwice()
+        [Theory]
+        [InlineData(5, 2)]
+        [InlineData(-5, 4)]
+        public void UpdateQuality_ConjuredItem_ShouldDecreaseQualityTwice(int sellIn, int qualityDecrease)
         {
             // Arrange
-            var item = new Item {Name = "Conjured", SellIn = 10, Quality = 10};
+            var item = new Item {Name = "Conjured", SellIn = sellIn, Quality = 10};
             var items = new List<Item> {item};
             var app = new GildedRose(items);
 
@@ -163,7 +179,7 @@ namespace csharpcore
             app.UpdateQuality();
 
             // Assert
-            Assert.Equal(8, item.Quality);
+            Assert.Equal(10 - qualityDecrease, item.Quality);
         }
     }
 }
